@@ -1,16 +1,20 @@
 #include "libasyik/http.hpp"
 #include "nlohmann/json.hpp"
 
-void register_routes(asyik::http_server_ptr<asyik::http_stream_type> server) {
-  server->on_http_request("/ping", "GET", [](auto req, auto args){
-    nlohmann::json j = R"(
-      {
-        "answer": "pong"
-      }
-    )"_json;
+void ping(asyik::http_request_ptr req, asyik::http_route_args args) {
+  // Deserialize raw string to json object
+  nlohmann::json j = R"(
+    {
+      "answer": "pong"
+    }
+  )"_json;
 
-    req->response.body = j.dump();
-    req->response.headers.set("Content-Type", "application/json");
-    req->response.result(200);
-  });
+  // Dumps json to string
+  req->response.body = j.dump();
+  req->response.headers.set("Content-Type", "application/json");
+  req->response.result(200);
+}
+
+void register_routes(asyik::http_server_ptr<asyik::http_stream_type> server) {
+  server->on_http_request("/ping", "GET", &ping);
 }
