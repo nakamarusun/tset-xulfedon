@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.14)
-project(xulfedon_jasoncoding_covid_api)
+project(covid_client)
 
-add_subdirectory(routes)
-add_subdirectory(covidclient)
+add_library(${PROJECT_NAME} client.cpp)
+add_library(covid::client ALIAS ${PROJECT_NAME})
 
-add_executable(${PROJECT_NAME} server.cpp)
+target_include_directories(${PROJECT_NAME} INTERFACE ${PROJECT_SOURCE_DIR})
+
+# Json
+find_package(nlohmann_json 3.2.0 REQUIRED)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
 # Add libasyik
 find_package(libasyik)
