@@ -1,17 +1,43 @@
 ### xulfedoN internship assesment
-COVID-19 HTTP API Server with a little twist
 
-[image]
+###### Now with database caching!
+![demo](/images/demo.gif)
 
-## API list
+This assignment uses these libraries:
+- libasyik
+- json by nlohmann
+- Boost
+- SOCI
 
 ## How to run
+1. To run you need to have [docker](https://www.docker.com/products/docker-desktop/) installed
+
+2. Clone this repository
+```bash
+git clone https://github.com/nakamarusun/tset-xulfedon.git
+cd tset-xulfedon
+```
+
+3. Build the docker image
+```bash
+docker build --tag xulfedon-tset:0.1 .
+```
+
+4. Create a docker volume to store the sqlite database
+```bash
+docker volume create covid-api-db
+```
+
+5. Run the container with the docker volume attached to it.
+```bash
+docker run -d -e DB_LOC="/var/docker_vol/covid.db" --mount type=volume,target=/var/docker_vol xulfedon-tset:0.1
+```
 
 ## Features
-- [ ] Database data caching. since historical COVID-19 (usually) does not
+- [x] Database data caching. since historical COVID-19 (usually) does not
 change, there is little reason to refetch from the API everytime someone hits
 our API. Therefore, we store it in a SQLite database.
-- [ ] Invalidate database entry. If we would like to, we can refetch the data
+- [x] Invalidate database entry. If we would like to, we can refetch the data
 in the database by an additional parameter.
 
 ## Potential issues and limitations
@@ -22,5 +48,5 @@ then send the data immediately to the user while inserting the data to the db
 asynchronously using fibers.
 
 ## Future Ideations
-- [ ] TODO: Middleware for HTTP servers
-- [ ] TODO: Last modified header from covid api
+- [ ] Middleware for HTTP servers
+- [ ] Last modified header from covid api

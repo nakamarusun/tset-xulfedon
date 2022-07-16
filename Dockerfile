@@ -61,7 +61,7 @@ RUN cd ~ && \
     mkdir build && \
     cd build && \
     cmake -DCMAKE_BUILD_TYPE=Debug .. && \
-    make -j4 && \
+    make -j4 && make install && \
     cp tests/libasyik_test /usr/bin && \
     cd ~
 
