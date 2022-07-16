@@ -17,3 +17,5 @@ in the database by an additional parameter.
 ## Potential issues and limitations
 
 ## Future Ideations
+- [ ] TODO: Middleware for HTTP servers
+- [ ] TODO: Last modified header from covid api

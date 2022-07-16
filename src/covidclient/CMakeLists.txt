@@ -6,6 +6,8 @@ add_library(covid::client ALIAS ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${PROJECT_SOURCE_DIR})
 
+target_link_libraries(${PROJECT_NAME} covid::utils)
+
 # Json
 find_package(nlohmann_json 3.2.0 REQUIRED)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)

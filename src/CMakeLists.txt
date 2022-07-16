@@ -3,8 +3,11 @@ project(xulfedon_jasoncoding_covid_api)
 
 add_subdirectory(routes)
 add_subdirectory(covidclient)
+add_subdirectory(utils)
 
 add_executable(${PROJECT_NAME} server.cpp)
+
+target_link_libraries(${PROJECT_NAME} covid::utils)
 
 # Add libasyik
 find_package(libasyik)
