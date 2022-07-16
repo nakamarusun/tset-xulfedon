@@ -52,7 +52,6 @@ model::http_result get_covid_status_api(asyik::service_ptr as) {
 
 boost::fibers::future<bool> refresh_database(asyik::service_ptr as, 
   asyik::sql_session_ptr ses) {
-
   auto fiber = as->execute([as, ses]() -> bool {
     // Fetch data
 
@@ -117,13 +116,23 @@ boost::fibers::future<bool> refresh_database(asyik::service_ptr as,
 }
 
 namespace data {
+  class query_result {
+    public:
+    std::string result;
+    bool success;
+    std::string reason;
+
+    query_result(): success(true) {}
+  };
+
   /**
    * Check database for entries from today and yesterday.
    * If both does not exist, then refresh database and return.
    */
-  std::string get_current_day(asyik::service_ptr as) {
+  query_result get_current_day(asyik::service_ptr as) {
     // Data from DB will be in these variables.
     // t_ prefix is total cases
+    query_result result;
     std::string case_date;
     std::string new_date;
     int pos, rec, dth, act, t_pos, t_rec, t_dth, t_act;
@@ -158,12 +167,14 @@ namespace data {
       message = "old data api haven not updated";
       if (time(0) > refresh_time + last_success_fetch ||
         get_date_from_time(last_success_fetch) < date) {
+
         // If it is time to refresh by refresh time, or we are on another date
         // Refetch from API
         if (refresh_database(as, ses).get()) {
           message = "data refetched";
         } else {
-          // TODO: Handle api fetching error
+          result.success = false;
+          result.reason = "error refreshing database";
         };
       }
       // Get the latest covid data from DB regardless if we refreshed or not.
@@ -199,20 +210,87 @@ namespace data {
     cases.total_deaths = t_dth;
     cases.total_active = t_act;
 
-    return model::make_response(true, cases.to_json(), message);
+    result.result = model::make_response(true, cases.to_json(), message);
+    return result;
   }
 
-  // std::string get_data_day(int day, int month, int year, asyik::service_ptr as) {
+  query_result get_data_day(asyik::service_ptr as, int day, int month, int year) {
+    std::string date;
+    std::string new_date;
+    std::string message;
+    query_result result;
+    int pos, rec, dth, act;
+    auto ses = get_db_sess(as);
 
-  // }
+    char query_date[15];
+    sprintf(query_date, "%04d-%02d-%02d", year, month, day);
+    std::string query_date_str = std::string(query_date);
 
-  // std::string get_data_month(int month, int year, asyik::service_ptr as) {
+    // Get the date of the event
+    ses->query(R"(
+        SELECT date, positive, recovered, deaths, active
+        FROM historical_data
+        WHERE date=:dater;
+      )", soci::use(query_date_str),
+      soci::into(date),
+      soci::into(pos), soci::into(rec), soci::into(dth), soci::into(act)
+    );
 
-  // }
+    if (date.empty()) {
+      if (refresh_database(as, ses).get()) {
+        message = "retrieved data";
+          ses->query(R"(
+          SELECT date, positive, recovered, deaths, active
+          FROM historical_data
+          WHERE date=:daters;
+        )", soci::use(query_date_str),
+        soci::into(new_date),
+        soci::into(pos), soci::into(rec), soci::into(dth), soci::into(act)
+      );
+      } else {
+        result.success = false;
+        result.reason = "error refreshing data";
+      }
+    } else {
+      message = "cached data";
+    }
 
-  // std::string get_data_year(int year, asyik::service_ptr as) {
+    model::historical_case cases;
 
-  // }
+    // If still empty
+    if (new_date.empty()) {
+      result.success = false;
+      result.reason = "unknown error";
+    } else {
+      if (new_date.empty()) {
+        cases.date = date;
+      } else {
+        cases.date = new_date;
+      }
+      cases.positive = pos;
+      cases.recovered = rec;
+      cases.deaths = dth;
+      cases.active = act;
+
+      result.result = model::make_response(true, cases.to_json(), message);
+    }
+
+    return result;
+  }
+
+  query_result get_data_month(asyik::service_ptr as, int month, int year) {
+    query_result result;
+    auto ses = get_db_sess(as);
+
+    return result;
+  }
+
+  query_result get_data_year(asyik::service_ptr as, int year) {
+    query_result result;
+    auto ses = get_db_sess(as);
+
+    return result;
+  }
 }
 
 #endif
