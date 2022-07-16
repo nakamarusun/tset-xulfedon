@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(covid_client)
 
-add_library(${PROJECT_NAME} client.cpp)
+add_library(${PROJECT_NAME} client.cpp models.cpp)
 add_library(covid::client ALIAS ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${PROJECT_SOURCE_DIR})

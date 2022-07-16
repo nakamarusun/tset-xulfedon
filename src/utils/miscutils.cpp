@@ -1,4 +1,8 @@
+#ifndef MISC_UTILS_COVID
+#define MISC_UTILS_COVID
+
 #include <stdlib.h>
+#include <sys/stat.h>
 
 /**
  * Like null coalescing in javascript.
@@ -14,3 +18,10 @@ T null_coalesce(T value, T value_if_null) {
 const char* env_or(char* env, const char* if_null) {
   return env == NULL ? if_null : env; 
 }
+
+bool file_exists(const char* name) {
+  struct stat stat_buf;
+  return stat(name, &stat_buf) == 0;
+}
+
+#endif

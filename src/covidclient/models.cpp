@@ -1,3 +1,6 @@
+#ifndef COVID_CLIENT_MODEL
+#define COVID_CLIENT_MODEL
+
 #include "nlohmann/json.hpp"
 
 #include <string>
@@ -81,3 +84,4 @@ namespace model {
     }
   };
 }
+#endif

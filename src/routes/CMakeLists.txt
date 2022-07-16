@@ -4,6 +4,7 @@ project(api_routes)
 add_executable(${PROJECT_NAME} routes.cpp)
 
 target_link_libraries(${PROJECT_NAME} covid::client)
+target_link_libraries(${PROJECT_NAME} covid::utils)
 
 # Json
 find_package(nlohmann_json 3.2.0 REQUIRED)

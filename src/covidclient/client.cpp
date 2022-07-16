@@ -1,3 +1,6 @@
+#ifndef COVID_CLIENT_CLIENT
+#define COVID_CLIENT_CLIENT
+
 /**
  * Bunch of code where we can query data from
  */
@@ -8,6 +11,8 @@
 
 #include <string>
 
+#include <stdio.h>
+
 const std::string API_BASE = "https://data.covid19.go.id";
 
 /**
@@ -15,6 +20,7 @@ const std::string API_BASE = "https://data.covid19.go.id";
  */
 model::http_result get_covid_status_api(asyik::service_ptr as) {
   auto fiber = as->execute([as]() -> model::http_result {
+    printf("Covid Query begin\n");
     model::http_result res;
     auto req = asyik::http_easy_request(
       as,
@@ -25,15 +31,16 @@ model::http_result get_covid_status_api(asyik::service_ptr as) {
     if (req->response.result() == 200) {
       // HTTP request successful
       res.success = true;
-      res.success = nlohmann::json::parse(req->response.body);
+      res.result = nlohmann::json::parse((std::string) req->response.body);
     } else {
       // HTTP request fail
       res.success = false;
     }
+    printf("Covid Query: %s\n", res.success ? "SUCCESS" : "FAIL");
     return res;
   });
 
-  fiber.wait();
+  // Waits for the response and then return :D
   return fiber.get();
 }
 
@@ -48,3 +55,4 @@ model::http_result get_covid_status_api(asyik::service_ptr as) {
 // std::string get_data_year(int year, asyik::service_ptr as) {
 
 // }
+#endif

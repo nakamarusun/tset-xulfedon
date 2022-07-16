@@ -8,6 +8,7 @@ add_subdirectory(utils)
 add_executable(${PROJECT_NAME} server.cpp)
 
 target_link_libraries(${PROJECT_NAME} covid::utils)
+target_link_libraries(${PROJECT_NAME} covid::client)
 
 # Add libasyik
 find_package(libasyik)

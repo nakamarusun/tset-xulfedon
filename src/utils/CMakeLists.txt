@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(covid_tuils)
+project(covid_utils)
 
 add_library(${PROJECT_NAME} miscutils.cpp)
 add_library(covid::utils ALIAS ${PROJECT_NAME})
