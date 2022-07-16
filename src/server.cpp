@@ -5,6 +5,7 @@
 #include "routes/routes.cpp"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
 
 int main() {
@@ -12,7 +13,6 @@ int main() {
   const char* host = env_or(getenv("HOST"), "127.0.0.1");
   const char* db_location = env_or(getenv("DB_LOC"), "/var/covid_ebin.db");
   int port = std::stoi(env_or(getenv("PORT"), "8080"));
-  int refresh_time = std::stoi(env_or(getenv("REFRESH_TIME"), "7200"));
 
   // Configures asyik stuffs
   auto as = asyik::make_service();

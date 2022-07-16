@@ -9,7 +9,10 @@ namespace model {
   /**
    * Helper function to create a HTTP response
    */
-  std::string make_response(std::string message, bool ok, nlohmann::json data = "{}"_json) {
+  std::string make_response(bool ok,
+        nlohmann::json data="{}"_json,
+        std::string message="") {
+
     std::string result = "{\"ok\":";
     result += ok ? "true" : "false";
     result += ",\"message\":\"";
@@ -34,7 +37,7 @@ namespace model {
    */
   class struct_to_json {
     public:
-    virtual nlohmann::json toJson() = 0;
+    virtual nlohmann::json to_json() = 0;
   };
 
   /**
@@ -48,7 +51,7 @@ namespace model {
     int deaths;
     int active;
 
-    nlohmann::json toJson() {
+    nlohmann::json to_json() {
       return {
         {"date", date},
         {"positive", positive},
@@ -69,7 +72,7 @@ namespace model {
     int total_deaths;
     int total_active;
 
-    nlohmann::json toJson() {
+    nlohmann::json to_json() {
       return {
         {"date", date},
         {"total_positive", total_positive},

@@ -22,9 +22,19 @@ void ping(asyik::http_request_ptr req, asyik::http_route_args args) {
   req->response.result(200);
 }
 
+/**
+ * Route current covid cases
+ */
+void current_covid(asyik::http_request_ptr req, asyik::http_route_args args) {
+  req->response.body = data::get_current_day(__as);
+  req->response.headers.set("Content-Type", "application/json");
+  req->response.result(200);
+}
+
 void register_routes(asyik::service_ptr as,
   asyik::http_server_ptr<asyik::http_stream_type> server) {
   __as = as;
 
   server->on_http_request("/ping", "GET", &ping);
+  server->on_http_request("/", "GET", &current_covid);
 }
