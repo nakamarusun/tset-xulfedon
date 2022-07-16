@@ -47,6 +47,12 @@ RUN apt-get -y update && \
     apt-get clean -y &&\
     rm -rf /var/lib/apt/lists/*
 
+# Install json
+RUN cd ~/temp && \
+    git clone https://github.com/nlohmann/json.git && cd json && \
+    mkdir build && cd build && \
+    cmake .. && make -j4 && make install
+
 # Build and install libasyik
 RUN cd ~ && \
     git clone https://github.com/okyfirmansyah/libasyik.git && \
@@ -65,7 +71,7 @@ COPY . .
 
 # Make
 RUN mkdir build && cd build && \
-    cmake .. && cmake --build ./ --target xulfedon_jasoncoding_covid_api
+    cmake .. && cmake --build ./ --target xulfedon_jasoncoding_covid_api -j 10
 
 FROM alpine:3.15.4
 
