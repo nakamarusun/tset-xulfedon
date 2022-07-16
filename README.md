@@ -30,7 +30,7 @@ docker volume create covid-api-db
 
 5. Run the container with the docker volume attached to it.
 ```bash
-docker run -d -e DB_LOC="/var/docker_vol/covid.db" --mount type=volume,target=/var/docker_vol xulfedon-tset:0.1
+docker run -d -e PORT=8080 -p 8080:8080 -e DB_LOC="/var/docker_vol/covid.db" --mount source=covid-api-db,target=/var/docker_vol xulfedon-tset:0.1
 ```
 
 ## Features

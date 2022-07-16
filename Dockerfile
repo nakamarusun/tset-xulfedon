@@ -73,10 +73,11 @@ COPY . .
 RUN mkdir build && cd build && \
     cmake .. && cmake --build ./ --target xulfedon_jasoncoding_covid_api -j 10
 
-FROM alpine:3.15.4
+# FROM ubuntu:20.04
 
 # Copy from build stage
 WORKDIR /app
-COPY --from=builder /xulfedon/build/src/xulfedon_jasoncoding_covid_api ./
+# COPY --from=builder /xulfedon/build/src/xulfedon_jasoncoding_covid_api ./
+RUN mv /xulfedon/build/src/xulfedon_jasoncoding_covid_api /app
 
 CMD [ "./xulfedon_jasoncoding_covid_api" ]
