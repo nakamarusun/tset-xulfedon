@@ -29,12 +29,6 @@ bool file_exists(const char* name) {
 // Thanks to TrungTN and Rashad
 // https://stackoverflow.com/a/10467633/12709867
 
-// If offset is specified, will offset the time by seconds.
-const std::string get_current_date(int offset = 0) {
-  time_t date = time(0) + offset;
-  return get_date_from_time(date);
-}
-
 const std::string get_date_from_time(time_t time) {
   struct tm tstruct;
   char buf[80];
@@ -42,6 +36,12 @@ const std::string get_date_from_time(time_t time) {
 
   strftime(buf, sizeof(buf), "%Y-%m-%d", &tstruct);
   return buf;
+}
+
+// If offset is specified, will offset the time by seconds.
+const std::string get_current_date(int offset = 0) {
+  time_t date = time(0) + offset;
+  return get_date_from_time(date);
 }
 
 #endif

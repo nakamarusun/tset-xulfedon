@@ -32,6 +32,7 @@ model::http_result get_covid_status_api(asyik::service_ptr as) {
       "GET",
       API_BASE + "/public/api/update.json"
     );
+    printf("Covid API Hit\n");
 
     if (req->response.result() == 200) {
       // HTTP request successful
@@ -49,12 +50,72 @@ model::http_result get_covid_status_api(asyik::service_ptr as) {
   return fiber.get();
 }
 
-// TODO
-boost::fibers::future<void> refresh_database(asyik::sql_session_ptr ses) {
+boost::fibers::future<bool> refresh_database(asyik::service_ptr as, 
+  asyik::sql_session_ptr ses) {
 
+  auto fiber = as->execute([as, ses]() -> bool {
+    // Fetch data
+
+    model::http_result data = get_covid_status_api(as);
+
+    if (!data.success) return false;
+
+    // Harian json
+    nlohmann::json harian = data.result["update"]["harian"];
+
+    // Build the query
+    std::string query_builder = R"(
+      INSERT INTO historical_data(date, positive, recovered, deaths, active)
+      VALUES 
+    )";
+
+    // Add inserts
+    for (nlohmann::json::iterator it = harian.begin(); it != harian.end(); ++it) {
+      auto j2 = *it;
+      // Get only the date part
+      const char* date = j2["key_as_string"].get<std::string>().substr(0, 10).c_str();
+      int pos = j2["jumlah_positif"]["value"].get<int>();
+      int rec = j2["jumlah_sembuh"]["value"].get<int>();
+      int dth = j2["jumlah_meninggal"]["value"].get<int>();
+      int act = j2["jumlah_dirawat"]["value"].get<int>();
+
+      char buf[100];
+      int n = sprintf(buf, "(\"%s\", %d, %d, %d, %d),", date, pos, rec, dth, act);
+      // If this is the last element, make the last comma disappear
+      if (harian.end() - it == 1) {
+        std::string temp = buf;
+        query_builder += temp.substr(0, n-1);
+      } else {
+        query_builder += buf;
+      }
+    }
+
+    // Add the rest of the query
+    query_builder += R"(
+      ON CONFLICT(date) DO UPDATE SET
+      positive=excluded.positive,
+      recovered=excluded.recovered,
+      deaths=excluded.deaths,
+      active=excluded.active;
+    )";
+
+    // Insert to DB
+    asyik::sql_transaction tr(ses);
+    ses->query(query_builder);
+
+    std::string time_done = std::to_string(time(0));
+    ses->query(R"(
+        UPDATE states SET value=:datee WHERE key="last_fetch";
+      )",
+      soci::use(time_done, "datee")
+    );
+    tr.commit();
+    return true;
+  });
+
+  return fiber;
 }
 
-// TODO: GMT+7
 namespace data {
   /**
    * Check database for entries from today and yesterday.
@@ -64,13 +125,14 @@ namespace data {
     // Data from DB will be in these variables.
     // t_ prefix is total cases
     std::string case_date;
+    std::string new_date;
     int pos, rec, dth, act, t_pos, t_rec, t_dth, t_act;
 
     // Get current date and yesterdays date
     const std::string date = get_current_date();
     const std::string date_yesterday = get_current_date(-(24*60*60));
 
-    std::string message;
+    std::string message = "latest data";
     auto ses = get_db_sess(as);
 
     // First, we should see if today's data is here
@@ -88,29 +150,33 @@ namespace data {
       // If data is not here, then lets first check when's the last time we
       // successfully fetched the data.
       int last_success_fetch;
+
       ses->query(R"(
-        SELECT last_fetch FROM states;
+        SELECT value FROM states WHERE key="last_fetch";
       )", soci::into(last_success_fetch));
 
+      message = "old data api haven not updated";
       if (time(0) > refresh_time + last_success_fetch ||
         get_date_from_time(last_success_fetch) < date) {
         // If it is time to refresh by refresh time, or we are on another date
         // Refetch from API
-        refresh_database(ses).wait();
+        if (refresh_database(as, ses).get()) {
+          message = "data refetched";
+        } else {
+          // TODO: Handle api fetching error
+        };
       }
-
       // Get the latest covid data from DB regardless if we refreshed or not.
       ses->query(R"(
-          SELECT positive, recovered, deaths, active
+          SELECT date, positive, recovered, deaths, active
           FROM historical_data
           ORDER BY date DESC
           LIMIT 1;
         )",
-        soci::use(date),
+        soci::into(new_date),
         soci::into(pos), soci::into(rec), soci::into(dth), soci::into(act)
       );
     }
-
     // Get the cumulative total
     ses->query(R"(
       SELECT SUM(positive), SUM(recovered), SUM(deaths), SUM(active)
@@ -119,6 +185,11 @@ namespace data {
     soci::into(t_pos), soci::into(t_rec), soci::into(t_dth), soci::into(t_act));
 
     model::current_case cases;
+    if (new_date.empty()) {
+      cases.date = date;
+    } else {
+      cases.date = new_date;
+    }
     cases.positive = pos;
     cases.recovered = rec;
     cases.deaths = dth;

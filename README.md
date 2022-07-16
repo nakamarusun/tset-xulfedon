@@ -15,6 +15,11 @@ our API. Therefore, we store it in a SQLite database.
 in the database by an additional parameter.
 
 ## Potential issues and limitations
+- When getting data for month, or year, first we fetch the data,
+Then we insert it to the database. After that, the database is queried and
+we send the data to the user. This process can be faster if we fetch the data,
+then send the data immediately to the user while inserting the data to the db
+asynchronously using fibers.
 
 ## Future Ideations
 - [ ] TODO: Middleware for HTTP servers
