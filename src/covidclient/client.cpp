@@ -54,9 +54,7 @@ boost::fibers::future<bool> refresh_database(asyik::service_ptr as,
   asyik::sql_session_ptr ses) {
   auto fiber = as->execute([as, ses]() -> bool {
     // Fetch data
-
     model::http_result data = get_covid_status_api(as);
-
     if (!data.success) return false;
 
     // Harian json
@@ -239,14 +237,19 @@ namespace data {
     if (date.empty()) {
       if (refresh_database(as, ses).get()) {
         message = "retrieved data";
-          ses->query(R"(
-          SELECT date, positive, recovered, deaths, active
-          FROM historical_data
-          WHERE date=:daters;
-        )", soci::use(query_date_str),
-        soci::into(new_date),
-        soci::into(pos), soci::into(rec), soci::into(dth), soci::into(act)
-      );
+            ses->query(R"(
+            SELECT date, positive, recovered, deaths, active
+            FROM historical_data
+            WHERE date=:daters;
+          )", soci::use(query_date_str),
+          soci::into(new_date),
+          soci::into(pos), soci::into(rec), soci::into(dth), soci::into(act)
+        );
+        // If still empty
+        if (new_date.empty()) {
+          result.success = false;
+          result.reason = "unknown error";
+        }
       } else {
         result.success = false;
         result.reason = "error refreshing data";
@@ -257,39 +260,88 @@ namespace data {
 
     model::historical_case cases;
 
-    // If still empty
     if (new_date.empty()) {
-      result.success = false;
-      result.reason = "unknown error";
+      cases.date = date;
     } else {
-      if (new_date.empty()) {
-        cases.date = date;
-      } else {
-        cases.date = new_date;
-      }
-      cases.positive = pos;
-      cases.recovered = rec;
-      cases.deaths = dth;
-      cases.active = act;
-
-      result.result = model::make_response(true, cases.to_json(), message);
+      cases.date = new_date;
     }
+    cases.positive = pos;
+    cases.recovered = rec;
+    cases.deaths = dth;
+    cases.active = act;
+
+    result.result = model::make_response(true, cases.to_json(), message);
+
+    return result;
+  }
+
+  query_result __get_sum_range(asyik::service_ptr as,
+    asyik::sql_session_ptr ses, std::string start, std::string end) {
+    int t_pos, t_rec, t_dth, t_act;
+    query_result result;
+    std::string message;
+
+    // Get when's our api last fetch
+    int last_success_fetch;
+    ses->query(R"(
+      SELECT value FROM states WHERE key="last_fetch";
+    )", soci::into(last_success_fetch));
+    std::string last_fetch = get_date_from_time(last_success_fetch);
+
+    // If the last fetch is from the previous month the data is collected then
+    // Refresh database
+    if (last_fetch < start) {
+      if (refresh_database(as, ses).get()) {
+        message = "data refetched";
+      } else {
+        result.success = false;
+        result.reason = "error refreshing database";
+      }
+    } else {
+      message = "data cached";
+    }
+
+    // Fetch data
+    ses->query(R"(
+      SELECT SUM(positive), SUM(recovered), SUM(deaths), SUM(active)
+      FROM historical_data
+      WHERE date>:begin_m AND date<:end_m;
+    )",
+    soci::use(start), soci::use(end),
+    soci::into(t_pos), soci::into(t_rec), soci::into(t_dth), soci::into(t_act));
+
+    model::historical_case cases;
+
+    cases.positive = t_pos;
+    cases.recovered = t_rec;
+    cases.deaths = t_dth;
+    cases.active = t_act;
+
+    result.result = model::make_response(true, cases.to_json(), message);
 
     return result;
   }
 
   query_result get_data_month(asyik::service_ptr as, int month, int year) {
-    query_result result;
     auto ses = get_db_sess(as);
 
-    return result;
+    // Construct data
+    char query_date[15];
+    sprintf(query_date, "%04d-%02d-", year, month);
+    std::string date_str = std::string(query_date);
+
+    return __get_sum_range(as, ses, date_str + "00", date_str + "99");
   }
 
   query_result get_data_year(asyik::service_ptr as, int year) {
-    query_result result;
     auto ses = get_db_sess(as);
 
-    return result;
+    // Construct data
+    char query_date[15];
+    sprintf(query_date, "%04d-", year);
+    std::string date_str = std::string(query_date);
+
+    return __get_sum_range(as, ses, date_str + "00-00", date_str + "99-99");
   }
 }
 
