@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string>
 
-int main() {
+int main(int argc, char *argv[]) {
   // Load environment variables
   const char* host = env_or(getenv("HOST"), "127.0.0.1");
   const char* db_location = env_or(getenv("DB_LOC"), "/var/covid_ebin.db");
